@@ -41,30 +41,19 @@ echo "Detected platform: $HYPERVISOR"
 echo "Detected CPU cores: $CPU_CORES"
 echo "Detected RAM: ${MEM_GB}GB"
 echo "Detected disk: ${DISK_GB}GB"
-(( CPU_CORES >= 4 )) || { echo "ERROR: Need 4+ CPU cores"; exit 1; }
-(( MEM_GB > 20 )) || { echo "ERROR: Need more than 20GB RAM"; exit 1; }
-(( DISK_GB >= 150 )) || { echo "ERROR: Need 150GB+ disk"; exit 1; }
 
-#######################################
-# Static IP Prompt
-#######################################
-read -rp "Configure static IP? (y/N): " SETIP
-if [[ "${SETIP,,}" == "y" ]]; then
-  read -rp "Interface (e.g. eth0): " IFACE
-  read -rp "Static IP (CIDR): " IPADDR
-  read -rp "Gateway: " GW
-  read -rp "DNS (comma-separated): " DNS
-  mkdir -p /etc/systemd/network
-  cat > /etc/systemd/network/10-static.network <<EOF
-[Match]
-Name=$IFACE
-[Network]
-Address=$IPADDR
-Gateway=$GW
-DNS=${DNS//,/ }
-EOF
-  systemctl enable systemd-networkd
-  systemctl restart systemd-networkd
+## Script no longer exits if the setup does not meet minimum requirements.
+(( CPU_CORES >= 4 )) || { echo "WARNING: Should have equal or greater than 4 core CPU";}
+(( MEM_GB > 20 )) || { echo "WARNING: Should have greater than 20GB RAM";}
+(( DISK_GB >= 150 )) || { echo "WARNING: Should have a disk larger than 150GB";}
+
+## Detect if IP is not static - force exit
+### This removes having the script setting a static IP
+if ip addr | grep -q "dynamic"; then
+    echo "Dynamic IP detected. Exiting"
+    ip addr | grep "inet " | grep "dynamic"
+    echo "You must set a STATIC IP address on the device you are attempting the installation on."
+    exit 1
 fi
 
 #######################################
